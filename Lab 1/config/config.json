@@ -1,0 +1,121 @@
+{
+    "tabs_and_indents": {
+        "use_tab_character": true,
+        "tab_size": 4,
+        "indent": 4,
+        "continuation_indent": 8,
+        "keep_indents_on_empty_lines": true
+    },
+    "spaces": {
+        "before_parentheses": {
+            "if": true,
+            "for": true,
+            "while": true,
+            "catch": true,
+            "when": true
+        },
+        "around_operators": {
+            "assignment": true,
+            "logical": true,
+            "equality": true,
+            "relational": true,
+            "additive": true,
+            "multiplicative": true,
+            "unary": false,
+            "rang": false
+        },
+        "other": {
+            "before_comma": false,
+            "after_comma": true,
+            "before_colon_after_declaration_name": false,
+            "after_colon_before_declaration_name": true,
+            "before_colon_in_new_type_definition": true,
+            "after_colon_in_new_type_definition": true,
+            "in_simple_one_line_methods": true,
+            "around_arrow_in_function_types": true,
+            "around_arrow_in_when_clause": true,
+            "before_lambda_arrow": true
+        }
+    },
+    "wrapping_and_braces": {
+        "keep_when_reformatting": {
+            "line_breaks": true,
+            "comment_at_first_column": true
+        },
+        "extends_implements_list": {
+            "setting": "do_not_wrap",
+            "align_when_multiline": false,
+            "use_continuation_indent": true
+        },
+        "function_declaration_parameters": {
+            "setting": "do_not_wrap",
+            "align_when_multiline": true,
+            "new_line_after_left_brace": false,
+            "place_right_brace_on_new_line": false,
+            "use_continuation_indent": true
+        },
+        "function_call_arguments": {
+            "setting": "do_not_wrap",
+            "align_when_multiline": true,
+            "new_line_after_left_brace": false,
+            "place_right_brace_on_new_line": false,
+            "use_continuation_indent": true
+        },
+        "function_parentheses": {
+            "align_when_multiline": false
+        },
+        "chained_function_calls": {
+            "setting": "do_not_wrap",
+            "wrap_first_call": false,
+            "use_continuation_indent": true
+        },
+        "if_statement": {
+            "else_on_new_line": false,
+            "place_left_brace_on_new_line": false,
+            "use_continuation_indent_in_conditions": true
+        },
+        "do_while_statement": {
+            "while_on_new_line": false
+        },
+        "try_statement":{
+            "catch_on_new_line": false,
+            "finally_on_new_line": false
+        },
+        "binary_expressions": {
+            "align_when_multiline": false
+        },
+        "assignment_statement": "do_not_wrap",
+        "enum_constants": "do_not_wrap",
+        "class_annotations": "wrap_always",
+        "function_annotations": "wrap_always",
+        "property_annotations": "wrap_always",
+        "parameter_annotations": "do_not_wrap",
+        "local_variable_annotations": "do_not_wrap",
+        "when_statement": {
+            "align_when_branches_in_columns": false
+        },
+        "braces_placement": {
+            "put_left_brace_on_new_line": false
+        },
+        "expression_body_functions": {
+            "setting": "do_not_wrap",
+            "use_continuation_indent": true
+        },
+        "elvis_expressions": {
+            "setting": "wrap_if_long",
+            "use_continuation_indent": true
+        }
+    },
+    "blank_lines": {
+        "keep_maximum_blank_lines": {
+            "in_declarations": 2,
+            "in code": 2,
+            "before_left_brace": 2
+        },
+        "minimum_blank_lines": {
+            "after_class_header": 0,
+            "around_when_branches_with_braces": 0,
+            "before_declaration_with_comment_or_annotation": 1
+        }
+    }
+}
