@@ -4,13 +4,14 @@ import logging
 
 class TokenType(Enum):
     WHITESPACE = 1
-    COMMENT = 2
-    KEYWORD = 3
-    IDENTIFIER = 4
-    SEPARATOR = 5
-    OPERATOR = 6
-    LITERAL = 7
-    ANNOTATION = 8
+    ANNOTATION = 2
+    COMMENT = 3
+    KEYWORD = 4
+    IDENTIFIER = 5
+    SEPARATOR = 6
+    OPERATOR = 7
+    STRING_LITERAL = 8
+    NUMBER_LITERAL = 9
 
 
 class Token:
