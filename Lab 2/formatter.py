@@ -1,5 +1,5 @@
-import logging
 from lexer import parse
+from token import TokenType
 
 
 class Formatter:
@@ -28,12 +28,20 @@ class Formatter:
         while i < len(self.__tokens):
             token = self.__tokens[i]
             if token == 'package':
-                pass
+                i = self.__fix_package(i)
             elif token in ('class', 'interface'):
                 pass
+            i += 1
 
-    def __fix_package(self):
-        pass
+    def __fix_package(self, pos):
+        pos = self.__skip_ws_tokens(pos)
+        while self.__tokens[pos] != ';':
+            if self.__tokens[pos].get_type() == TokenType.IDENTIFIER and not Formatter.is_lower_case(
+                    self.__tokens[pos].get_value()):
+                self.__to_fix[self.__tokens[pos]] = Formatter.to_lower_case((self.__tokens[pos]))
+            pos += 1
+
+        return pos
 
     def __fix_class_name(self):
         pass
@@ -45,4 +53,34 @@ class Formatter:
         pass
 
     def __fix_comments(self):
+        pass
+
+    def __skip_ws_tokens(self, pos):
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            pos += 1
+        return pos
+
+    @staticmethod
+    def is_lower_case(naming):
+        if naming.find('_') != -1 or not naming.islower():
+            return False
+
+    @staticmethod
+    def to_lower_case(naming):
+        return ''.join([component.lower() for component in naming.split('_')])
+
+    @staticmethod
+    def is_camel_lower_case(naming):
+        pass
+
+    @staticmethod
+    def is_camel_upper_case(naming):
+        pass
+
+    @staticmethod
+    def is_snake_lower_case(naming):
+        pass
+
+    @staticmethod
+    def is_snake_upper_case(naming):
         pass
