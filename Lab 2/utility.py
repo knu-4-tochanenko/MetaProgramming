@@ -66,6 +66,10 @@ def verify(files):
     i = 0
     while i < len(files):
         rewrite_file(files[i], tokens[i])
+        path, f = os.path.split(files[i])
+        if not Formatter.is_snake_upper_case(f):
+            logging.warning(
+                f'{files[i]}: Incorrect file naming. Expected {Formatter.to_camel_upper_case(f)}, but found {f}')
         i += 1
 
 
@@ -79,6 +83,11 @@ def correct(files):
     i = 0
     while i < len(files):
         rewrite_file(files[i], tokens[i])
+        path, f = os.path.split(files[i])
+        if not Formatter.is_snake_upper_case(f):
+            expected = Formatter.to_camel_upper_case(f)
+            logging.warning(f'{files[i]}: Incorrect file naming. Expected {expected}, but found {f}')
+            os.rename(files[i], os.path.join(path, expected))
         i += 1
 
 
@@ -96,6 +105,7 @@ def rename_dirs(path, mode):
             rename_dirs(d, mode)
             expected = Formatter.to_lower_case(file)
             if expected != file:
-                logging.warning(f'{file}: Wrong naming for directory in package path. Expected {expected}, but found {file}')
+                logging.warning(
+                    f'{file}: Wrong naming for directory in package path. Expected {expected}, but found {file}')
                 if mode == 'correct':
                     os.rename(d, os.path.join(path, expected))

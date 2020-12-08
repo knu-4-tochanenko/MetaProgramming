@@ -22,7 +22,6 @@ class Formatter:
             tokens[i] = self.__tokens
             i += 1
         i = 0
-        # print(self.__to_fix)
         while i < len(tokens):
             self.__tokens = tokens[i]
             self.__file = self.__files[i]
@@ -79,7 +78,6 @@ class Formatter:
                 else:
                     self.__fix_method_name(pos, class_name)
                     parameters = self.__get_method_parameters(pos)
-                    print(parameters)
                     pos = self.__fix_method_body(pos, parameters)
             pos += 1
         return pos
