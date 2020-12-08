@@ -1,6 +1,6 @@
 import re
 from lexer import parse
-from token import TokenType, update_token_value
+from java_token import TokenType, update_token_value
 
 
 class Formatter:
@@ -20,25 +20,31 @@ class Formatter:
             self.__file = self.__files[i]
             self.__find_to_fix()
             tokens[i] = self.__tokens
+            i += 1
+        i = 0
+        print(self.__to_fix)
         while i < len(tokens):
             self.__tokens = tokens[i]
             self.__file = self.__files[i]
             self.__fix()
             self.__fix_comments()
             tokens[i] = self.__tokens
+            i += 1
+        return tokens
 
     def __find_to_fix(self):
         i = 0
         while i < len(self.__tokens):
-            token = self.__tokens[i]
-            if token == 'package':
-                i = self.__fix_package(i)
-            elif token in ('class', 'interface'):
-                i = self.__skip_ws_tokens(i)
-                if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
-                    self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
-                        self.__tokens[i].get_value())
-                self.__fix_class_body(i, self.__tokens[i].get_value())
+            print(self.__tokens[i].get_value())
+            # token = self.__tokens[i]
+            # if token.get_value() == 'package':
+            #     i = self.__fix_package(i)
+            # elif token.get_value() in ('class', 'interface'):
+            #     i = self.__skip_ws_tokens(i)
+            #     if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
+            #         self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
+            #             self.__tokens[i].get_value())
+            #     self.__fix_class_body(i, self.__tokens[i].get_value())
             i += 1
 
     def __fix_package(self, pos):

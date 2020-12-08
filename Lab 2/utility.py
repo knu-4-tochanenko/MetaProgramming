@@ -1,6 +1,8 @@
+import logging
 import argparse
 import os
 from file_finder import find_java_files
+from formatter import Formatter
 
 
 def add_argparse():
@@ -39,6 +41,9 @@ def add_argparse():
     elif mode == 'correct':
         correct(files)
 
+    if path == 'p':
+        rename_dirs(args.p, mode)
+
 
 def get_files(path_arg, args):
     if path_arg == 'p':
@@ -52,8 +57,45 @@ def get_files(path_arg, args):
 
 
 def verify(files):
-    pass
+    if not os.path.exists('verification'):
+        os.mkdir('verification')
+    logging.basicConfig(filename=os.path.join('verification', 'verification.log'),
+                        level=logging.WARN)
+    formatter = Formatter(files)
+    tokens = formatter.process()
+    i = 0
+    while i < len(files):
+        rewrite_file(files[i], tokens[i])
+        i += 1
 
 
 def correct(files):
-    pass
+    if not os.path.exists('fixing'):
+        os.mkdir('fixing')
+    logging.basicConfig(filename=os.path.join('fixing', 'fixing.log'),
+                        level=logging.WARN)
+    formatter = Formatter(files)
+    tokens = formatter.process()
+    i = 0
+    while i < len(files):
+        rewrite_file(files[i], tokens[i])
+        i += 1
+
+
+def rewrite_file(filename, tokens):
+    file = open(filename, mode='w+')
+    for token in tokens:
+        file.write(token.get_value())
+    file.close()
+
+
+def rename_dirs(path, mode):
+    for file in os.listdir(path):
+        d = os.path.join(path, file)
+        if os.path.isdir(d):
+            rename_dirs(d, mode)
+            expected = Formatter.to_lower_case(file)
+            if expected != file:
+                logging.warning(f'{file}: Wrong naming for directory in package path. Expected {expected}, but found {file}')
+                if mode == 'correct':
+                    os.rename(d, os.path.join(path, expected))

@@ -1,5 +1,5 @@
 import re
-from token import Token, TokenType
+from java_token import Token, TokenType
 
 keywords = ('abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue',
             'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'goto', 'if',
@@ -7,8 +7,9 @@ keywords = ('abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', '
             'protected', 'public', 'return', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
             'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while')
 operators = (
-'++', '--', '!', '~', '+', '-', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '<=', '>=', '==', '!=', '&', '^', '|', '&&',
-'||', ':', '::', '=', '+=', '-=', '*=', '/=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>=')
+    '++', '--', '!', '~', '+', '-', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '<=', '>=', '==', '!=', '&', '^', '|',
+    '&&',
+    '||', ':', '::', '=', '+=', '-=', '*=', '/=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>=')
 separators = (';', ',', '.', '(', ')', '{', '}', '[', ']')
 
 
@@ -19,6 +20,7 @@ def parse(code):
         current_char = code[i]
         if current_char.isspace():
             tokens.append(Token(current_char, TokenType.WHITESPACE))
+            i += 1
         elif current_char.isalpha() or current_char == '_':
             identifier, i = parse_identifier(code, i)
             if identifier in keywords:
@@ -29,10 +31,10 @@ def parse(code):
             identifier, i = parse_identifier(code, i + 1)
             tokens.append(Token('@' + identifier, TokenType.ANNOTATION))
         elif current_char == '/' and code[i + 1] in ('/', '*'):
-            if code[i + 1] == '/':
+            if code[i + 1] == '*':
                 comment, i = parse_multiple_line_comment(code, i)
                 tokens.append(Token(comment, TokenType.COMMENT))
-            elif code[i + 1] == '*':
+            elif code[i + 1] == '/':
                 comment, i = parse_single_line_comment(code, i)
                 tokens.append(Token(comment, TokenType.COMMENT))
         elif current_char.isdigit():
@@ -43,9 +45,11 @@ def parse(code):
             tokens.append(Token(literal, TokenType.STRING_LITERAL))
         elif current_char in separators:
             tokens.append(Token(current_char, TokenType.SEPARATOR))
+            i += 1
         else:
-            pass
-        i += 1
+            operator, i = parse_operator(code, i)
+            tokens.append(Token(operator, i))
+    return tokens
 
 
 def parse_identifier(code, pos):
@@ -57,11 +61,14 @@ def parse_identifier(code, pos):
 
 def parse_sting_literal(code, separator, pos):
     end = pos
+    print(code[pos + 1])
     while end < len(code):
+        print(code[end - 1])
         end = code.find(separator, end + 1)
         if code[end - 1] != '\\':
             break
-    return code[pos:end], end
+
+    return code[pos:end + 1], end + 1
 
 
 def parse_number_literal(code, pos):
@@ -81,12 +88,12 @@ def parse_operator(code, pos):
 def parse_single_line_comment(code, pos):
     end = code.find('\n', pos + 1)
     if end == -1:
-        end = len(code)
+        end = len(code) - 1
     return code[pos:end], end
 
 
 def parse_multiple_line_comment(code, pos):
     end = code.find('\n', pos + 1)
     if end == -1:
-        end = len(code)
+        end = len(code) - 1
     return code[pos:end], end
