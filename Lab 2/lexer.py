@@ -61,9 +61,7 @@ def parse_identifier(code, pos):
 
 def parse_sting_literal(code, separator, pos):
     end = pos
-    print(code[pos + 1])
     while end < len(code):
-        print(code[end - 1])
         end = code.find(separator, end + 1)
         if code[end - 1] != '\\':
             break

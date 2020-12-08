@@ -22,7 +22,7 @@ class Formatter:
             tokens[i] = self.__tokens
             i += 1
         i = 0
-        print(self.__to_fix)
+        # print(self.__to_fix)
         while i < len(tokens):
             self.__tokens = tokens[i]
             self.__file = self.__files[i]
@@ -35,16 +35,15 @@ class Formatter:
     def __find_to_fix(self):
         i = 0
         while i < len(self.__tokens):
-            print(self.__tokens[i].get_value())
-            # token = self.__tokens[i]
-            # if token.get_value() == 'package':
-            #     i = self.__fix_package(i)
-            # elif token.get_value() in ('class', 'interface'):
-            #     i = self.__skip_ws_tokens(i)
-            #     if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
-            #         self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
-            #             self.__tokens[i].get_value())
-            #     self.__fix_class_body(i, self.__tokens[i].get_value())
+            token = self.__tokens[i]
+            if token.get_value() == 'package':
+                i = self.__fix_package(i)
+            elif token.get_value() in ('class', 'interface'):
+                i = self.__skip_ws_tokens(i + 1)
+                if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
+                    self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
+                        self.__tokens[i].get_value())
+                self.__fix_class_body(i, self.__tokens[i].get_value())
             i += 1
 
     def __fix_package(self, pos):
@@ -61,6 +60,7 @@ class Formatter:
         while self.__tokens[pos].get_value() != '{':
             pos += 1
         count = 1
+        pos += 1
         while count != 0:
             if self.__tokens[pos].get_value() == '{':
                 count += 1
@@ -68,14 +68,24 @@ class Formatter:
                 count -= 1
             elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
                 if self.__is_parameter(pos):
-                    parameter, pos = self.__get_parameter_name(pos)
+                    parameter, i = self.__get_parameter_name(pos)
+                    if self.__is_final(pos):
+                        if not Formatter.is_snake_upper_case(parameter):
+                            self.__to_fix[parameter] = Formatter.to_snake_upper_case(parameter)
+                    else:
+                        if not Formatter.is_camel_lower_case(parameter):
+                            self.__to_fix[parameter] = Formatter.to_camel_lower_case(parameter)
+                    pos = i
                 else:
                     self.__fix_method_name(pos, class_name)
-                    pos = self.__fix_method_body(pos)
+                    parameters = self.__get_method_parameters(pos)
+                    print(parameters)
+                    pos = self.__fix_method_body(pos, parameters)
+            pos += 1
         return pos
 
     def __fix_method_name(self, i, class_name):
-        while self.__tokens[i].get_value() != '(':
+        while self.__tokens[i].get_value() not in ('(', ';'):
             i += 1
         i -= 1
         while self.__tokens[i].get_type() == TokenType.WHITESPACE:
@@ -90,7 +100,7 @@ class Formatter:
         while self.__tokens[i].get_value() != '(':
             i += 1
         while self.__tokens[i].get_value() != ')':
-            if self.__tokens[i + 1] in (')', ','):
+            if self.__tokens[i + 1].get_value() in (')', ','):
                 pos = i
                 while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
                     pos -= 1
@@ -98,11 +108,14 @@ class Formatter:
                     fixed_value = Formatter.to_camel_lower_case(self.__tokens[pos].get_value())
                     parameters[self.__tokens[pos].get_value()] = fixed_value
                     update_token_value(self.__file, self.__tokens[pos], fixed_value)
+            i += 1
         return parameters
 
-    def __fix_method_body(self, i):
+    def __fix_method_body(self, i, method_parameters):
         params = dict()
         while self.__tokens[i].get_value() != '{':
+            if self.__tokens[i].get_value() in method_parameters.keys():
+                update_token_value(self.__file, self.__tokens[i], method_parameters[self.__tokens[i].get_value()])
             i += 1
         brace_count = 1
         i += 1
@@ -119,36 +132,38 @@ class Formatter:
                     type_pos = naming_pos - 1
                     while self.__tokens[type_pos].get_type() == TokenType.WHITESPACE:
                         type_pos -= 1
-                    if self.__tokens[type_pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD) and \
-                            self.__tokens[type_pos].get_value() not in ('class', 'identifier'):
+                    if (self.__tokens[type_pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD) and \
+                        self.__tokens[type_pos].get_value() not in ('class', 'identifier')) or self.__tokens[
+                        type_pos].get_value() == ',':
                         if not Formatter.is_camel_lower_case(self.__tokens[naming_pos].get_value()):
-                            fixed_value = Formatter.is_camel_lower_case(self.__tokens[naming_pos])
+                            fixed_value = Formatter.to_camel_lower_case(self.__tokens[naming_pos].get_value())
                             params[self.__tokens[naming_pos].get_value()] = fixed_value
                             update_token_value(self.__file, self.__tokens[naming_pos], fixed_value)
             elif self.__tokens[i].get_type() == TokenType.IDENTIFIER and self.__tokens[
                 i].get_value() in params.keys():
-                update_token_value(self.__file, self.__tokens[i], params[self.__tokens[i]])
+                update_token_value(self.__file, self.__tokens[i], params[self.__tokens[i].get_value()])
+            i += 1
         return i
 
     def __get_parameter_name(self, i):
         while self.__tokens[i].get_value() not in (';', '='):
             i += 1
-        end = i + 1
+        end = i
         i -= 1
         while self.__tokens[i].get_type() == TokenType.WHITESPACE:
             i -= 1
 
-        if self.__tokens[end] != ';':
-            while self.__tokens[end] != ';':
+        if self.__tokens[end].get_value() != ';':
+            while self.__tokens[end].get_value() != ';':
                 end += 1
 
-        return self.__tokens[i], end
+        return self.__tokens[i].get_value(), end
 
     def __is_final(self, i):
         while self.__tokens[i].get_value() not in (';', '=', '('):
             if self.__tokens[i].get_value() == 'final':
                 return True
-            i -= 1
+            i += 1
         return False
 
     def __fix_constant(self, i):
@@ -161,9 +176,9 @@ class Formatter:
         while self.__tokens[pos].get_value() != ';' and pos < len(self.__tokens):
             if self.__tokens[pos].get_value() == '=':
                 return True
-            elif self.__tokens[pos].get_value() in ('class', 'interface', '('):
+            elif self.__tokens[pos].get_value() in ('class', 'interface', '(', ')'):
                 return False
-            pos -= 1
+            pos += 1
         return True
 
     def __fix(self):

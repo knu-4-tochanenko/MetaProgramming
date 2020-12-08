@@ -1,4 +1,5 @@
-public class Main {
+public class Test {
+  private static final A;
 
   public static void main(String[] args) {
 
