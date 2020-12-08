@@ -18,6 +18,7 @@ class Token:
     def __init__(self, value, _type):
         self.__value = value
         self.__type = _type
+        self.__is_fixed = False
 
     def get_value(self):
         return self.__value
@@ -28,9 +29,16 @@ class Token:
     def get_type(self):
         return self.__type
 
+    def is_fixed(self):
+        return self.__is_fixed
+
+    def set_fixed(self, fixed):
+        self.__is_fixed = fixed
+
 
 def update_token_value(file, token, value):
     if token.get_value() != value:
         logging.warning(
             f'{file}: Incorrect code style for token value: Expected {value}, but found {token.get_value()}')
         token.set_value(value)
+        token.set_fixed(True)
