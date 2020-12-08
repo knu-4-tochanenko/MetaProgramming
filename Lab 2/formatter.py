@@ -65,7 +65,7 @@ class Formatter:
                     parameter, pos = self.__get_parameter_name(pos)
                 else:
                     self.__fix_method_name(pos, class_name)
-                    self.__fix_method_body(pos)
+                    pos = self.__fix_method_body(pos)
         return pos
 
     def __fix_method_name(self, i, class_name):
@@ -95,7 +95,34 @@ class Formatter:
         return parameters
 
     def __fix_method_body(self, i):
-        pass
+        params = dict()
+        while self.__tokens[i].get_value() != '{':
+            i += 1
+        brace_count = 1
+        i += 1
+        while brace_count != 0:
+            if self.__tokens[i].get_value() == '{':
+                brace_count += 1
+            elif self.__tokens[i].get_value() == '}':
+                brace_count -= 1
+            elif self.__tokens[i].get_value() in ('=', ';'):
+                naming_pos = i - 1
+                while self.__tokens[naming_pos].get_type() == TokenType.WHITESPACE:
+                    naming_pos -= 1
+                if self.__tokens[naming_pos].get_type() == TokenType.IDENTIFIER:
+                    type_pos = naming_pos - 1
+                    while self.__tokens[type_pos].get_type() == TokenType.WHITESPACE:
+                        type_pos -= 1
+                    if self.__tokens[type_pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD) and \
+                            self.__tokens[type_pos].get_value() not in ('class', 'identifier'):
+                        if not Formatter.is_camel_lower_case(self.__tokens[naming_pos].get_value()):
+                            fixed_value = Formatter.is_camel_lower_case(self.__tokens[naming_pos])
+                            params[self.__tokens[naming_pos].get_value()] = fixed_value
+                            update_token_value(self.__file, self.__tokens[naming_pos], fixed_value)
+            elif self.__tokens[i].get_type() == TokenType.IDENTIFIER and self.__tokens[
+                i].get_value() in params.keys():
+                update_token_value(self.__file, self.__tokens[i], params[self.__tokens[i]])
+        return i
 
     def __get_parameter_name(self, i):
         while self.__tokens[i].get_value() not in (';', '='):
@@ -104,6 +131,10 @@ class Formatter:
         i -= 1
         while self.__tokens[i].get_type() == TokenType.WHITESPACE:
             i -= 1
+
+        if self.__tokens[end] != ';':
+            while self.__tokens[end] != ';':
+                end += 1
 
         return self.__tokens[i], end
 
@@ -114,8 +145,11 @@ class Formatter:
             i -= 1
         return False
 
-    def __fix_constant(self, i, is_method):
-        pass
+    def __fix_constant(self, i):
+        parameter, end = self.__get_parameter_name(i)
+        if not Formatter.is_snake_upper_case(parameter):
+            self.__to_fix[parameter] = Formatter.to_snake_upper_case(parameter)
+        return parameter, end
 
     def __is_parameter(self, pos):
         while self.__tokens[pos].get_value() != ';' and pos < len(self.__tokens):
