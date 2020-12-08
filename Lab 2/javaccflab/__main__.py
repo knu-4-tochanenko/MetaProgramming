@@ -1,5 +1,5 @@
-from utility import add_argparse
+from javaccflab.java_ccf import main
 
 
 if __name__ == '__main__':
-    add_argparse()
+    main()

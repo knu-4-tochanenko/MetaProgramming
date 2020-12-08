@@ -1,5 +1,5 @@
 import re
-from java_token import Token, TokenType
+from javaccflab.java_token import Token, TokenType
 
 keywords = ('abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue',
             'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'goto', 'if',
@@ -8,7 +8,7 @@ keywords = ('abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', '
             'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while')
 operators = (
     '++', '--', '!', '~', '+', '-', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '<=', '>=', '==', '!=', '&', '^', '|',
-    '&&',
+    '&&', '?',
     '||', ':', '::', '=', '+=', '-=', '*=', '/=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>=')
 separators = (';', ',', '.', '(', ')', '{', '}', '[', ']')
 
@@ -91,7 +91,5 @@ def parse_single_line_comment(code, pos):
 
 
 def parse_multiple_line_comment(code, pos):
-    end = code.find('\n', pos + 1)
-    if end == -1:
-        end = len(code) - 1
+    end = code.find('*/', pos + 2) + 2
     return code[pos:end], end

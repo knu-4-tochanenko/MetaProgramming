@@ -5,10 +5,10 @@ from javaccflab.file_finder import find_java_files
 from javaccflab.formatter import Formatter
 
 
-def add_argparse():
+def main():
     ap = argparse.ArgumentParser(description="JavaCCF is utility to fix style in Java files.")
     ap = argparse.ArgumentParser(
-        description="ScalaCCF - utility to fix style and documentation comments in Scala files")
+        description="JavaCCF is utility to fix style and documentation comments in Java files")
     ap.add_argument('-p', type=str, default=None, help="Path to Java project directory to verify or correct mistakes.")
     ap.add_argument('-d', type=str, default=None,
                     help="Path to directory with Java files to verify or correct mistakes.")
@@ -74,9 +74,9 @@ def verify(files):
 
 
 def correct(files):
-    if not os.path.exists('../fixing'):
-        os.mkdir('../fixing')
-    logging.basicConfig(filename=os.path.join('../fixing', 'fixing.log'),
+    if not os.path.exists('fixing'):
+        os.mkdir('fixing')
+    logging.basicConfig(filename=os.path.join('fixing', 'fixing.log'),
                         level=logging.WARN)
     formatter = Formatter(files)
     tokens = formatter.process()

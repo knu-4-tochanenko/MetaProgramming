@@ -1,6 +1,6 @@
 import re
-from lexer import parse
-from java_token import TokenType, update_token_value
+from javaccflab.lexer import parse
+from javaccflab.java_token import TokenType, update_token_value
 
 
 class Formatter:
@@ -42,7 +42,7 @@ class Formatter:
                 if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
                     self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
                         self.__tokens[i].get_value())
-                self.__fix_class_body(i, self.__tokens[i].get_value())
+                i = self.__fix_class_body(i, self.__tokens[i].get_value())
             i += 1
 
     def __fix_package(self, pos):
@@ -65,6 +65,12 @@ class Formatter:
                 count += 1
             elif self.__tokens[pos].get_value() == '}':
                 count -= 1
+            elif self.__tokens[pos].get_value() == 'static':
+                i = self.__skip_ws_tokens(pos + 1)
+                if self.__tokens[i].get_value() == '{':
+                    pos = i + 1
+                    count += 1
+                    continue
             elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
                 if self.__is_parameter(pos):
                     parameter, i = self.__get_parameter_name(pos)
@@ -88,7 +94,6 @@ class Formatter:
         i -= 1
         while self.__tokens[i].get_type() == TokenType.WHITESPACE:
             i -= 1
-
         if self.__tokens[i].get_value() != class_name and not Formatter.is_snake_lower_case(
                 self.__tokens[i].get_value()):
             self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_snake_lower_case(self.__tokens[i].get_value())
@@ -111,10 +116,13 @@ class Formatter:
 
     def __fix_method_body(self, i, method_parameters):
         params = dict()
-        while self.__tokens[i].get_value() != '{':
+        while self.__tokens[i].get_value() not in ('{', ';'):
             if self.__tokens[i].get_value() in method_parameters.keys():
                 update_token_value(self.__file, self.__tokens[i], method_parameters[self.__tokens[i].get_value()])
             i += 1
+
+        if self.__tokens[i].get_value() == ';':
+            return i + 1
         brace_count = 1
         i += 1
         while brace_count != 0:
@@ -140,6 +148,9 @@ class Formatter:
             elif self.__tokens[i].get_type() == TokenType.IDENTIFIER and self.__tokens[
                 i].get_value() in params.keys():
                 update_token_value(self.__file, self.__tokens[i], params[self.__tokens[i].get_value()])
+            elif self.__tokens[i].get_type() == TokenType.IDENTIFIER and self.__tokens[
+                i].get_value() in method_parameters.keys():
+                update_token_value(self.__file, self.__tokens[i], method_parameters[self.__tokens[i].get_value()])
             i += 1
         return i
 
@@ -206,8 +217,9 @@ class Formatter:
 
     @staticmethod
     def to_camel_lower_case(naming):
-        components = [component.lower() if component.isupper() else component[0].upper() + component[1:] for component
-                      in naming.split('_')]
+        components = [
+            component[0] + component[1:].lower() if component.isupper() else component[0].upper() + component[1:] for
+            component in naming.split('_')]
         return components[0][0].lower() + components[0][1:] + ''.join(components[1:])
 
     @staticmethod
