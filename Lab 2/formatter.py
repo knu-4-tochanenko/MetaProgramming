@@ -62,20 +62,57 @@ class Formatter:
                 count -= 1
             elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
                 if self.__is_parameter(pos):
-                    self.__fix_parameter(pos, False)
+                    parameter, pos = self.__get_parameter_name(pos)
                 else:
                     self.__fix_method_name(pos, class_name)
                     self.__fix_method_body(pos)
         return pos
 
     def __fix_method_name(self, i, class_name):
-        pass
+        while self.__tokens[i].get_value() != '(':
+            i += 1
+        i -= 1
+        while self.__tokens[i].get_type() == TokenType.WHITESPACE:
+            i -= 1
+
+        if self.__tokens[i].get_value() != class_name and not Formatter.is_snake_lower_case(
+                self.__tokens[i].get_value()):
+            self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_snake_lower_case(self.__tokens[i].get_value())
+
+    def __get_method_parameters(self, i):
+        parameters = dict()
+        while self.__tokens[i].get_value() != '(':
+            i += 1
+        while self.__tokens[i].get_value() != ')':
+            if self.__tokens[i + 1] in (')', ','):
+                pos = i
+                while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+                    pos -= 1
+                if not Formatter.is_camel_lower_case(self.__tokens[pos].get_value()):
+                    fixed_value = Formatter.to_camel_lower_case(self.__tokens[pos].get_value())
+                    parameters[self.__tokens[pos].get_value()] = fixed_value
+                    update_token_value(self.__file, self.__tokens[pos], fixed_value)
+        return parameters
 
     def __fix_method_body(self, i):
         pass
 
-    def __fix_parameter(self, i, is_method):
-        pass
+    def __get_parameter_name(self, i):
+        while self.__tokens[i].get_value() not in (';', '='):
+            i += 1
+        end = i + 1
+        i -= 1
+        while self.__tokens[i].get_type() == TokenType.WHITESPACE:
+            i -= 1
+
+        return self.__tokens[i], end
+
+    def __is_final(self, i):
+        while self.__tokens[i].get_value() not in (';', '=', '('):
+            if self.__tokens[i].get_value() == 'final':
+                return True
+            i -= 1
+        return False
 
     def __fix_constant(self, i, is_method):
         pass
