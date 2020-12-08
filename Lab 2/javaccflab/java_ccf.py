@@ -1,8 +1,8 @@
 import logging
 import argparse
 import os
-from file_finder import find_java_files
-from formatter import Formatter
+from javaccflab.file_finder import find_java_files
+from javaccflab.formatter import Formatter
 
 
 def add_argparse():
@@ -74,9 +74,9 @@ def verify(files):
 
 
 def correct(files):
-    if not os.path.exists('fixing'):
-        os.mkdir('fixing')
-    logging.basicConfig(filename=os.path.join('fixing', 'fixing.log'),
+    if not os.path.exists('../fixing'):
+        os.mkdir('../fixing')
+    logging.basicConfig(filename=os.path.join('../fixing', 'fixing.log'),
                         level=logging.WARN)
     formatter = Formatter(files)
     tokens = formatter.process()
