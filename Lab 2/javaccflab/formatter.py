@@ -50,7 +50,7 @@ class Formatter:
         while self.__tokens[pos].get_value() != ';':
             if self.__tokens[pos].get_type() == TokenType.IDENTIFIER and not Formatter.is_lower_case(
                     self.__tokens[pos].get_value()):
-                self.__to_fix[self.__tokens[pos]] = Formatter.to_lower_case((self.__tokens[pos]))
+                self.__to_fix[self.__tokens[pos].get_value()] = Formatter.to_lower_case((self.__tokens[pos].get_value()))
             pos += 1
 
         return pos
