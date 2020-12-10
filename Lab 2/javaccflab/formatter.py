@@ -1,6 +1,7 @@
 import re
+import datetime
 from javaccflab.lexer import parse
-from javaccflab.java_token import TokenType, update_token_value
+from javaccflab.java_token import TokenType, Token, update_token_value
 
 
 class Formatter:
@@ -197,7 +198,27 @@ class Formatter:
                 update_token_value(self.__file, token, self.__to_fix[token.get_value()])
 
     def __fix_comments(self):
-        pass
+        self.__add_start_comment()
+
+    def __add_start_comment(self):
+        if not self.__is_start_comment_exists():
+            comment = f'/*\n' \
+                      f' * {self.__find_main_class_name()}\n' \
+                      f' *\n' \
+                      f' * {datetime.date.today().strftime("%B %d, %Y")}\n' \
+                      f' */\n\n'
+            self.__tokens.insert(0, Token(comment, TokenType.COMMENT))
+
+    def __is_start_comment_exists(self):
+        i = self.__skip_ws_tokens(0)
+        return self.__tokens[i].get_type() == TokenType.COMMENT
+
+    def __find_main_class_name(self):
+        i = 0
+        while self.__tokens[i].get_value() not in ('class', 'interface'):
+            i += 1
+        i = self.__skip_ws_tokens(i + 1)
+        return self.__tokens[i].get_value()
 
     def __skip_ws_tokens(self, pos):
         while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
