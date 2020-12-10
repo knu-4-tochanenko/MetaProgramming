@@ -75,13 +75,15 @@ class Formatter:
                     continue
             elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
                 if self.__is_parameter(pos):
-                    parameter, i = self.__get_parameter_name(pos)
+                    parameters, i = self.__get_field_names(pos)
                     if self.__is_final(pos):
-                        if not Formatter.is_snake_upper_case(parameter):
-                            self.__to_fix[parameter] = Formatter.to_snake_upper_case(parameter)
+                        for parameter in parameters:
+                            if not Formatter.is_snake_upper_case(parameter):
+                                self.__to_fix[parameter] = Formatter.to_snake_upper_case(parameter)
                     else:
-                        if not Formatter.is_camel_lower_case(parameter):
-                            self.__to_fix[parameter] = Formatter.to_camel_lower_case(parameter)
+                        for parameter in parameters:
+                            if not Formatter.is_camel_lower_case(parameter):
+                                self.__to_fix[parameter] = Formatter.to_camel_lower_case(parameter)
                     pos = i
                 else:
                     self.__fix_method_name(pos, class_name)
@@ -156,19 +158,26 @@ class Formatter:
             i += 1
         return i
 
-    def __get_parameter_name(self, i):
-        while self.__tokens[i].get_value() not in (';', '='):
+    def __get_field_names(self, i):
+        params = []
+        while self.__tokens[i].get_value() != ';':
+            if self.__tokens[i + 1].get_value() in (';', '=', ','):
+                pos = i
+                while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+                    pos -= 1
+
+                field_name = self.__tokens[pos].get_value()
+                is_value = False
+                if self.__tokens[i + 1].get_value() in (';', ','):
+                    while pos > 0 and self.__tokens[pos].get_value() not in (';', '}'):
+                        if self.__tokens[pos].get_value() == '=':
+                            is_value = True
+                        pos -= 1
+                if not is_value:
+                    params.append(field_name)
             i += 1
         end = i
-        i -= 1
-        while self.__tokens[i].get_type() == TokenType.WHITESPACE:
-            i -= 1
-
-        if self.__tokens[end].get_value() != ';':
-            while self.__tokens[end].get_value() != ';':
-                end += 1
-
-        return self.__tokens[i].get_value(), end
+        return params, end
 
     def __is_final(self, i):
         while self.__tokens[i].get_value() not in (';', '=', '('):
@@ -176,12 +185,6 @@ class Formatter:
                 return True
             i += 1
         return False
-
-    def __fix_constant(self, i):
-        parameter, end = self.__get_parameter_name(i)
-        if not Formatter.is_snake_upper_case(parameter):
-            self.__to_fix[parameter] = Formatter.to_snake_upper_case(parameter)
-        return parameter, end
 
     def __is_parameter(self, pos):
         while self.__tokens[pos].get_value() != ';' and pos < len(self.__tokens):
@@ -203,9 +206,7 @@ class Formatter:
         i = 0
         while i < len(self.__tokens):
             if self.__tokens[i].get_value() in ('class', 'interface'):
-                pass
-                # TODO: increment i
-                self.__fix_class_comments(i)
+                i = self.__fix_class_comments(i)
                 i += 1
             i += 1
 
@@ -278,14 +279,15 @@ class Formatter:
 
     def __fix_field_comment(self, pos):
         comment_token = self.__find_doc_comment_before(pos)
+        indent = self.__get_indent(pos)
         if comment_token is None:
-            field_name = self.__find_field_name(pos)
+            field_names = ', '.join(self.__get_field_names(pos)[0])
             visibility = self.__find_visibility(pos)
 
             comment_token = Token(None, TokenType.COMMENT)
-            comment_string = comment_string = f'/**\n' \
-                                              f' * The {visibility} {field_name} {"constant" if self.__is_final(pos) else "variable"}\n' \
-                                              f' */'
+            comment_string = comment_string = f'{indent}/**\n' \
+                                              f'{indent} * The {visibility} {field_names} {"constant" if self.__is_final(pos) else "variable"}{"s" if len(field_names) > 0 else ""}\n' \
+                                              f'{indent} */'
             update_token_value(self.__file, comment_token, comment_string)
 
             insert_pos = self.__find_token_before(pos, '\n')
@@ -294,15 +296,6 @@ class Formatter:
         else:
             self.__fix_comment_links(comment_token)
         return self.__find_token_after(pos, ';')
-
-    def __find_field_name(self, pos):
-        while self.__tokens[pos].get_value() not in (';', '='):
-            pos += 1
-        pos -= 1
-        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
-            pos -= 1
-
-        return self.__tokens[pos].get_value()
 
     def __find_visibility(self, pos):
         pos = self.__find_token_before(pos, '\n')
@@ -314,11 +307,181 @@ class Formatter:
 
     def __fix_method_comment(self, pos):
         comment_token = self.__find_doc_comment_before(pos)
+        indent = self.__get_indent(pos)
+        all_params = []
         if comment_token is None:
-            pass
+            params = self.__get_parameter_list(pos)
+            params.extend(self.__get_type_parameter_list(pos))
+            if len(params) > 0:
+                all_params.append("\n".join([f"{indent} * @param {param}" for param in params]))
+            throws = self.__get_throws(pos)
+            if len(throws) > 0:
+                all_params.append("\n".join([f"{indent} * @throws {param}" for param in throws]))
+            return_type = self.__get_return_type(pos)
+            if len(return_type) > 0:
+                all_params.append(f"{indent} * @return {self.__get_return_type(pos)}")
+
+
+            comment_token = Token(None, TokenType.COMMENT)
+            comment_string = f'{indent}/**\n' + \
+                             '\n'.join(all_params) + \
+                             ('' if len(params) <= 0 else ' ') + \
+                             f'\n{indent} */'
+            update_token_value(self.__file, comment_token, comment_string)
+            insert_pos = self.__find_token_before(pos, '\n')
+            self.__tokens.insert(insert_pos, Token('\n', TokenType.WHITESPACE))
+            self.__tokens.insert(insert_pos + 1, comment_token)
         else:
-            pass
+            self.__fix_comment_links(comment_token)
+
+            params_list = self.__get_parameter_list(pos)
+            params_list.extend(self.__get_type_parameter_list(pos))
+            throws_list = self.__get_throws(pos)
+            return_type_value = self.__get_return_type(pos)
+
+            params, throws, return_type = self.__fix_comment_params(comment_token)
+            comment_string = comment_token.get_value()
+
+            append_string = ''
+            i = 0
+            if len(params) < len(params_list):
+                print(Formatter.get_missing(params, params_list))
+                append_string += "\n" + "\n".join(
+                    [f"{indent} * @param {param}" for param in Formatter.get_missing(params, params_list)])
+                i = comment_string.rfind('@param')
+                if i != -1:
+                    i = comment_string.find('\n', i) if comment_string.find('\n',
+                                                                            i) != -1 else comment_string.find('*',
+                                                                                                              i) - 1
+                    comment_string = comment_string[:i] + append_string + comment_string[i:]
+                    append_string = ''
+            if len(throws) < len(throws_list):
+                append_string += "\n" + "\n".join(
+                    [f"{indent} * @throws {param}" for param in Formatter.get_missing(throws, throws_list)])
+                i = comment_string.rfind('@throws')
+                if i != -1:
+                    i = comment_string.find('\n', i) if comment_string.find('\n',
+                                                                            i) != -1 else comment_string.find('*',
+                                                                                                              i) - 1
+                    comment_string = comment_string[:i] + append_string + comment_string[i:]
+                    append_string = ''
+            i = comment_string.find('\n', i)
+            if len(return_type) == '':
+                append_string += "\n" + f"\n{indent} * @return {return_type_value}"
+            else:
+                i = comment_string.rfind('@return')
+                while comment_string[i] != '\n':
+                    i -= 1
+            comment_string = comment_string[:i] + append_string + comment_string[i:]
+            print(comment_string)
+            if comment_string != comment_token.get_value():
+                update_token_value(self.__file, comment_token, comment_string)
         return self.__skip_method(pos)
+
+    @staticmethod
+    def get_missing(before, after):
+        missing_params = []
+        for value in after:
+            if value not in before:
+                missing_params.append(value)
+        return missing_params
+
+    def __get_parameter_list(self, pos):
+        parameters = []
+        while self.__tokens[pos].get_value() != '(':
+            pos += 1
+        while self.__tokens[pos].get_value() != ')':
+            if self.__tokens[pos + 1].get_value() in (')', ','):
+                i = pos
+                while self.__tokens[i].get_type() == TokenType.WHITESPACE:
+                    i -= 1
+                parameters.append(self.__tokens[i].get_value())
+            pos += 1
+        return parameters
+
+    def __get_type_parameter_list(self, pos):
+        parameters = []
+        while self.__tokens[pos].get_value() != '<':
+            pos += 1
+        i = pos - 1
+        while self.__tokens[i].get_type() == TokenType.WHITESPACE:
+            i -= 1
+        if self.__tokens[i].get_type() != TokenType.KEYWORD or self.__tokens[i].get_value() not in ('}', ';'):
+            return parameters
+        while self.__tokens[pos].get_value() != '>':
+            if self.__tokens[pos - 1].get_value() in ('<', ','):
+                i = pos
+                while self.__tokens[i].get_type() == TokenType.WHITESPACE:
+                    i += 1
+                parameters.append(self.__tokens[i].get_value())
+            pos += 1
+        return parameters
+
+    def __get_throws(self, pos):
+        throws = []
+        is_throws = False
+        while self.__tokens[pos].get_value() != '{':
+            if self.__tokens[pos].get_value() == 'throws':
+                is_throws = True
+            elif is_throws and self.__tokens[pos].get_type() == TokenType.IDENTIFIER:
+                throws.append(self.__tokens[pos].get_value())
+            pos += 1
+        return throws
+
+    def __get_return_type(self, pos):
+        return_type = []
+        while self.__tokens[pos].get_value() != '(':
+            pos += 1
+        pos -= 1
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            pos -= 1
+        while self.__tokens[pos].get_type() != TokenType.WHITESPACE:
+            pos -= 1
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            pos -= 1
+        if self.__tokens[pos].get_value() == '>':
+            while self.__tokens[pos].get_value() != '<':
+                return_type.append(self.__tokens[pos].get_value())
+                pos -= 1
+            return_type.append(self.__tokens[pos].get_value())
+            pos -= 1
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            return_type.append(self.__tokens[pos].get_value())
+            pos -= 1
+        return_type.append(self.__tokens[pos].get_value())
+        return_type.reverse()
+        return ''.join(return_type)
+
+    def __fix_comment_params(self, comment_token):
+        i = 0
+        params = []
+        throws = []
+        return_type = ''
+
+        comment_string = comment_token.get_value()
+        while i < len(comment_string):
+            if comment_string[i] == '@':
+                start = comment_string.find(' ', i)
+                macro = comment_string[i:start]
+                end = min(comment_string.find(' ', start + 1), comment_string.find('\n', start + 1))
+                end = end if end >= 0 else max(comment_string.find(' ', start + 1),
+                                               comment_string.find('\n', start + 1))
+                if end > 0:
+                    value = comment_string[start + 1:end]
+                    new_value = self.__fix_link(value)
+                    if value != new_value:
+                        comment_string = comment_string.replace(value, new_value)
+                        update_token_value(self.__file, comment_token, comment_string)
+                        value = new_value
+                    if macro == '@param':
+                        params.append(value)
+                    elif macro == '@throws':
+                        throws.append(value)
+                    elif macro == '@return':
+                        return_type = value
+            i += 1
+        print(params, throws, return_type)
+        return params, throws, return_type
 
     def __skip_method(self, pos):
         while self.__tokens[pos].get_value() != '{':
@@ -357,7 +520,46 @@ class Formatter:
         return pos
 
     def __fix_comment_links(self, comment_token):
-        pass
+        i = 0
+        link = None
+        comment_string = comment_token.get_value()
+        while i < len(comment_string):
+            if comment_string[i] == '@':
+                start = comment_string.find(' ', i)
+                if comment_string[i:start] != '@see':
+                    i += 1
+                    continue
+                end = comment_string.find('\n', i)
+                link = comment_string[start:end]
+            elif comment_string[i] == '{':
+                start = comment_string.find(' ', i)
+                end = comment_string.find('}', i)
+                link = comment_string[start:end]
+            if link is not None:
+                new_link = self.__fix_link(link)
+                comment_string = comment_string.replace(link, new_link)
+                link = None
+            i += 1
+        if comment_string != comment_token.get_value():
+            update_token_value(self.__file, comment_token, comment_string)
+
+    def __fix_link(self, link):
+        for name in self.__to_fix.keys():
+            pos = link.find(name)
+            if pos != -1 and not (link[pos - 1].isalpha() or link[
+                pos - 1].isdigit() or link[pos - 1] == '_'):
+                link = link.replace(name, self.__to_fix[name])
+
+        return link
+
+    def __get_indent(self, pos):
+        pos = self.__find_token_before(pos, '\n')
+        count = 0
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            if self.__tokens[pos].get_value() == ' ':
+                count += 1
+            pos += 1
+        return ' ' * count
 
     def __skip_ws_tokens(self, pos):
         while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
