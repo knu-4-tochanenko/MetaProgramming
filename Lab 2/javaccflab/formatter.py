@@ -200,25 +200,164 @@ class Formatter:
     def __fix_comments(self):
         self.__add_start_comment()
 
+        i = 0
+        while i < len(self.__tokens):
+            if self.__tokens[i].get_value() in ('class', 'interface'):
+                pass
+                # TODO: increment i
+                self.__fix_class_comments(i)
+                i += 1
+            i += 1
+
+    #  Fix start comment
     def __add_start_comment(self):
         if not self.__is_start_comment_exists():
-            comment = f'/*\n' \
-                      f' * {self.__find_main_class_name()}\n' \
-                      f' *\n' \
-                      f' * {datetime.date.today().strftime("%B %d, %Y")}\n' \
-                      f' */\n\n'
-            self.__tokens.insert(0, Token(comment, TokenType.COMMENT))
+            comment_token = Token(None, TokenType.COMMENT)
+            comment_string = f'/*\n' \
+                             f' * {self.__find_class_name()}\n' \
+                             f' *\n' \
+                             f' * {datetime.date.today().strftime("%B %d, %Y")}\n' \
+                             f' */'
+            update_token_value(self.__file, comment_token, comment_string)
+            self.__tokens.insert(0, comment_token)
+            self.__tokens.insert(1, Token('\n', TokenType.WHITESPACE))
+            self.__tokens.insert(1, Token('\n', TokenType.WHITESPACE))
 
     def __is_start_comment_exists(self):
         i = self.__skip_ws_tokens(0)
         return self.__tokens[i].get_type() == TokenType.COMMENT
 
-    def __find_main_class_name(self):
-        i = 0
-        while self.__tokens[i].get_value() not in ('class', 'interface'):
+    def __find_class_name(self, i=0):
+        while self.__tokens[i].get_value() not in ('class', 'interface') and self.__tokens[i - 1].get_value() != '.':
             i += 1
         i = self.__skip_ws_tokens(i + 1)
         return self.__tokens[i].get_value()
+
+    # Fix class comment
+    def __fix_class_comments(self, pos):
+        comment_token = self.__find_doc_comment_before(pos)
+        if comment_token is None:
+            comment_token = Token(None, TokenType.COMMENT)
+            comment_string = f'/**\n' \
+                             f' * Implementation of {self.__find_class_name(pos)}\n' \
+                             f' */'
+            update_token_value(self.__file, comment_token, comment_string)
+
+            insert_pos = self.__find_token_before(pos, '\n')
+            self.__tokens.insert(insert_pos, Token('\n', TokenType.WHITESPACE))
+            self.__tokens.insert(insert_pos + 1, comment_token)
+        else:
+            self.__fix_comment_links(comment_token)
+
+        return self.__fix_class_body_comments(pos)
+
+    # Fix comments for methods and fields
+    def __fix_class_body_comments(self, pos):
+        while self.__tokens[pos].get_value() != '{':
+            pos += 1
+        count = 1
+        pos += 1
+        while count != 0:
+            if self.__tokens[pos].get_value() == '{':
+                count += 1
+            elif self.__tokens[pos].get_value() == '}':
+                count -= 1
+            elif self.__tokens[pos].get_value() == 'static':
+                i = self.__skip_ws_tokens(pos + 1)
+                if self.__tokens[i].get_value() == '{':
+                    pos = i + 1
+                    count += 1
+                    continue
+            elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
+                if self.__is_parameter(pos):
+                    pos = self.__fix_field_comment(pos)
+                else:
+                    pos = self.__fix_method_comment(pos)
+            pos += 1
+        return pos
+
+    def __fix_field_comment(self, pos):
+        comment_token = self.__find_doc_comment_before(pos)
+        if comment_token is None:
+            field_name = self.__find_field_name(pos)
+            visibility = self.__find_visibility(pos)
+
+            comment_token = Token(None, TokenType.COMMENT)
+            comment_string = comment_string = f'/**\n' \
+                                              f' * The {visibility} {field_name} {"constant" if self.__is_final(pos) else "variable"}\n' \
+                                              f' */'
+            update_token_value(self.__file, comment_token, comment_string)
+
+            insert_pos = self.__find_token_before(pos, '\n')
+            self.__tokens.insert(insert_pos, Token('\n', TokenType.WHITESPACE))
+            self.__tokens.insert(insert_pos + 1, comment_token)
+        else:
+            self.__fix_comment_links(comment_token)
+        return self.__find_token_after(pos, ';')
+
+    def __find_field_name(self, pos):
+        while self.__tokens[pos].get_value() not in (';', '='):
+            pos += 1
+        pos -= 1
+        while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            pos -= 1
+
+        return self.__tokens[pos].get_value()
+
+    def __find_visibility(self, pos):
+        pos = self.__find_token_before(pos, '\n')
+        while self.__tokens[pos].get_value() not in ('=', ';', '('):
+            if self.__tokens[pos].get_value() in ('private', 'public', 'protected'):
+                return self.__tokens[pos].get_value()
+            pos += 1
+        return 'package-private'
+
+    def __fix_method_comment(self, pos):
+        comment_token = self.__find_doc_comment_before(pos)
+        if comment_token is None:
+            pass
+        else:
+            pass
+        return self.__skip_method(pos)
+
+    def __skip_method(self, pos):
+        while self.__tokens[pos].get_value() != '{':
+            pos += 1
+
+        count = 1
+        pos += 1
+
+        while count != 0:
+            if self.__tokens[pos].get_value() == '{':
+                count += 1
+            elif self.__tokens[pos].get_value() == '}':
+                count -= 1
+            pos += 1
+
+        return pos
+
+    def __find_doc_comment_before(self, pos):
+        while self.__tokens[pos].get_value() != '\n':
+            pos -= 1
+        while pos > 0 and self.__tokens[pos].get_type() == TokenType.WHITESPACE:
+            pos -= 1
+        if self.__tokens[pos].get_type() == TokenType.COMMENT and self.__tokens[pos].get_value().startswith('/**'):
+            return self.__tokens[pos]
+
+        return None
+
+    def __find_token_before(self, pos, value):
+        while pos > 0 and self.__tokens[pos].get_value() != value:
+            pos -= 1
+        return pos
+
+    def __find_token_after(self, pos, value):
+        while pos < len(self.__tokens) and self.__tokens[pos].get_value() != value:
+            pos += 1
+        return pos
+
+    def __fix_comment_links(self, comment_token):
+        pass
 
     def __skip_ws_tokens(self, pos):
         while self.__tokens[pos].get_type() == TokenType.WHITESPACE:
