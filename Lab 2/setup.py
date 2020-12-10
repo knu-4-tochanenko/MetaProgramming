@@ -9,7 +9,7 @@ setup(
     entry_points={
         "console_scripts": ['javaccflab = javaccflab.java_ccf:main']
     },
-    version='0.1.6',
+    version='0.1.8',
     description="JavaCCF is utility to fix style in Java files",
     long_description=long_description,
     long_description_content_type='text/markdown',

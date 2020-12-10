@@ -7,9 +7,8 @@ keywords = ('abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', '
             'protected', 'public', 'return', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
             'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while')
 operators = (
-    '++', '--', '!', '~', '+', '-', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '<=', '>=', '==', '!=', '&', '^', '|',
-    '&&', '?',
-    '||', ':', '::', '=', '+=', '-=', '*=', '/=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>=')
+    '++', '--', '!', '~', '+', '-', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '<=', '>=', '==', '!=', '&', '^',
+    '|', '&&', '||', ':', '::', '=', '+=', '-=', '*=', '/=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>=', '?', '->')
 separators = (';', ',', '.', '(', ')', '{', '}', '[', ']')
 
 
@@ -60,12 +59,13 @@ def parse_identifier(code, pos):
 
 
 def parse_sting_literal(code, separator, pos):
-    end = pos
+    end = pos + 1
     while end < len(code):
-        end = code.find(separator, end + 1)
-        if code[end - 1] != '\\':
+        if code[end] != separator:
+            end = code.find(separator, end)
+        if code[end - 1] != '\\' or (code[end - 1] == '\\' and code[end - 2] == '\\' and code[end - 3] != '\\'):
             break
-
+        end += 1
     return code[pos:end + 1], end + 1
 
 

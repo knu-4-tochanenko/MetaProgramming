@@ -37,7 +37,7 @@ class Formatter:
             token = self.__tokens[i]
             if token.get_value() == 'package':
                 i = self.__fix_package(i)
-            elif token.get_value() in ('class', 'interface'):
+            elif token.get_value() in ('class', 'interface') and self.__tokens[i - 1].get_value() != '.':
                 i = self.__skip_ws_tokens(i + 1)
                 if not Formatter.is_camel_upper_case(self.__tokens[i].get_value()):
                     self.__to_fix[self.__tokens[i].get_value()] = Formatter.to_camel_upper_case(
@@ -50,7 +50,8 @@ class Formatter:
         while self.__tokens[pos].get_value() != ';':
             if self.__tokens[pos].get_type() == TokenType.IDENTIFIER and not Formatter.is_lower_case(
                     self.__tokens[pos].get_value()):
-                self.__to_fix[self.__tokens[pos].get_value()] = Formatter.to_lower_case((self.__tokens[pos].get_value()))
+                self.__to_fix[self.__tokens[pos].get_value()] = Formatter.to_lower_case(
+                    (self.__tokens[pos].get_value()))
             pos += 1
 
         return pos
@@ -217,6 +218,7 @@ class Formatter:
 
     @staticmethod
     def to_camel_lower_case(naming):
+        naming = Formatter.remove_underscores_around(naming)
         components = [
             component[0] + component[1:].lower() if component.isupper() else component[0].upper() + component[1:] for
             component in naming.split('_')]
@@ -247,3 +249,15 @@ class Formatter:
     @staticmethod
     def to_snake_upper_case(naming):
         return Formatter.to_snake_lower_case(naming).upper()
+
+    @staticmethod
+    def remove_underscores_around(naming):
+        i = 0
+        while naming[i] == '_':
+            i += 1
+        naming = naming[i:]
+        j = len(naming) - 1
+        while naming[j] == '_':
+            i -= 1
+        naming = naming[:j + 1]
+        return naming
