@@ -269,7 +269,8 @@ class Formatter:
                     pos = i + 1
                     count += 1
                     continue
-            elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD):
+            elif self.__tokens[pos].get_type() in (TokenType.IDENTIFIER, TokenType.KEYWORD) and self.__tokens[
+                pos + 1].get_value() != '.' and self.__tokens[pos].get_value() not in ('class', 'interface'):
                 if self.__is_parameter(pos):
                     pos = self.__fix_field_comment(pos)
                 else:
@@ -321,7 +322,6 @@ class Formatter:
             if len(return_type) > 0:
                 all_params.append(f"{indent} * @return {self.__get_return_type(pos)}")
 
-
             comment_token = Token(None, TokenType.COMMENT)
             comment_string = f'{indent}/**\n' + \
                              '\n'.join(all_params) + \
@@ -345,7 +345,6 @@ class Formatter:
             append_string = ''
             i = 0
             if len(params) < len(params_list):
-                print(Formatter.get_missing(params, params_list))
                 append_string += "\n" + "\n".join(
                     [f"{indent} * @param {param}" for param in Formatter.get_missing(params, params_list)])
                 i = comment_string.rfind('@param')
@@ -373,7 +372,6 @@ class Formatter:
                 while comment_string[i] != '\n':
                     i -= 1
             comment_string = comment_string[:i] + append_string + comment_string[i:]
-            print(comment_string)
             if comment_string != comment_token.get_value():
                 update_token_value(self.__file, comment_token, comment_string)
         return self.__skip_method(pos)
@@ -402,6 +400,8 @@ class Formatter:
     def __get_type_parameter_list(self, pos):
         parameters = []
         while self.__tokens[pos].get_value() != '<':
+            if self.__tokens[pos].get_value() == '(':
+                return parameters
             pos += 1
         i = pos - 1
         while self.__tokens[i].get_type() == TokenType.WHITESPACE:
@@ -420,7 +420,7 @@ class Formatter:
     def __get_throws(self, pos):
         throws = []
         is_throws = False
-        while self.__tokens[pos].get_value() != '{':
+        while self.__tokens[pos].get_value() not in ('{', ';'):
             if self.__tokens[pos].get_value() == 'throws':
                 is_throws = True
             elif is_throws and self.__tokens[pos].get_type() == TokenType.IDENTIFIER:
@@ -480,11 +480,12 @@ class Formatter:
                     elif macro == '@return':
                         return_type = value
             i += 1
-        print(params, throws, return_type)
         return params, throws, return_type
 
     def __skip_method(self, pos):
         while self.__tokens[pos].get_value() != '{':
+            if self.__tokens[pos].get_value() == ';':
+                return pos + 1
             pos += 1
 
         count = 1
